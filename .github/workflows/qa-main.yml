@@ -1,0 +1,62 @@
+name: QA Automation - Playwright Cucumber
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-main-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-tests:
+    name: Playwright + Cucumber (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      BROWSER: chromium
+      HEADED: 'false'
+      WORKERS: '1'
+      BASE_URL: https://practicetestautomation.com/practice-test-login/
+      TEST_USER: ${{ secrets.TEST_USER }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # El proyecto original no incluye package-lock.json; npm install evita un fallo de npm ci.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: TypeScript static check
+        run: npm run typecheck
+
+      - name: Run Cucumber scenarios
+        run: npm test
+
+      - name: Upload HTML, JSON, screenshots and videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: challenge-delaware-jcsq-cucumber-${{ github.run_number }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14

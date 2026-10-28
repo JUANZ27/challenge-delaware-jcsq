@@ -1,0 +1,10 @@
+const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+fs.rmSync('reports', { recursive: true, force: true });
+fs.mkdirSync('reports', { recursive: true });
+const cucumber = path.join(process.cwd(), 'node_modules', '@cucumber', 'cucumber', 'bin', 'cucumber.js');
+const result = spawnSync(process.execPath, [cucumber, '--config', 'cucumber.cjs', ...process.argv.slice(2)], { stdio: 'inherit', env: process.env });
+const gallery = spawnSync(process.execPath, [path.join(__dirname, 'generate-gallery.cjs')], { stdio: 'inherit' });
+if (gallery.status !== 0) console.error('No se pudo generar la galería');
+process.exit(result.status ?? 1);

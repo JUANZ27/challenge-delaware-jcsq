@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const base = path.resolve('reports');
+const folder = path.join(base, 'metadatos');
+const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const files = fs.existsSync(folder) ? fs.readdirSync(folder).filter(f=>f.endsWith('.json')) : [];
+const entries = files.map(f=>JSON.parse(fs.readFileSync(path.join(folder,f),'utf8')));
+const rows = entries.map((e,i)=>`<article><h2>${i+1}. ${escape(e.name)} <span class="${e.status==='PASSED'?'pass':'fail'}">${escape(e.status)}</span></h2>${e.screenshot ? `<a href="${escape(e.screenshot)}" target="_blank"><img loading="lazy" alt="Captura del escenario" src="${escape(e.screenshot)}"></a>`:'<p>Sin captura disponible</p>'}${e.video ? `<video controls preload="metadata" src="${escape(e.video)}"></video><p><a href="${escape(e.video)}">Abrir video</a></p>`:'<p>Sin video disponible</p>'}</article>`).join('\n');
+const html=`<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evidencias de automatización — Delaware</title><style>body{background:#111827;color:#f9fafb;font:16px system-ui,Arial;margin:0}header{padding:26px 5vw;background:#1f2937}main{max-width:1150px;margin:auto;padding:20px}article{padding:22px;background:#1f2937;border-radius:12px;margin-bottom:24px}img,video{display:block;max-width:100%;width:850px;border-radius:8px;margin:16px 0;border:1px solid #475569}video{max-height:520px}a{color:#93c5fd}.pass{color:#4ade80}.fail{color:#fca5a5}h2{font-size:19px}</style></head><body><header><h1>Evidencias — Playwright + Cucumber</h1><p>${entries.length} escenarios. Capturas y videos locales por ejecución.</p><a href="cucumber.html">Abrir reporte Cucumber</a></header><main>${rows||'<p>No hay evidencias. Ejecute npm test.</p>'}</main></body></html>`;
+fs.mkdirSync(base,{recursive:true});fs.writeFileSync(path.join(base,'evidencias.html'),html);
+console.log(`Galería: reports/evidencias.html (${entries.length} escenarios)`);
